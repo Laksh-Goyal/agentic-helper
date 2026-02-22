@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Helper</title>
+    <meta name="description" content="AI-powered agentic assistant with tool-use capabilities">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">⚡</span>
+                    <h1>Agentic Helper</h1>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <h3>Available Tools</h3>
+                <ul class="tool-list" id="tool-list">
+                    <li class="tool-item loading">Loading tools...</li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <h3>Session</h3>
+                <button class="btn btn-secondary" id="clear-chat" title="Start a new conversation">
+                    <span>🗑</span> Clear Chat
+                </button>
+            </div>
+            <div class="sidebar-footer">
+                <p>Powered by <strong>LangGraph + Gemini</strong></p>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <header class="chat-header">
+                <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+                <div class="header-info">
+                    <h2>Chat</h2>
+                    <span class="status-badge" id="status-badge">Ready</span>
+                </div>
+            </header>
+
+            <div class="messages-container" id="messages">
+                <div class="welcome-message">
+                    <div class="welcome-icon">🤖</div>
+                    <h2>Welcome to Agentic Helper</h2>
+                    <p>I'm an AI assistant with access to tools including a web browser, calculator, and more. Ask me anything!</p>
+                    <div class="quick-actions">
+                        <button class="quick-action" data-prompt="What time is it right now?">🕐 Current Time</button>
+                        <button class="quick-action" data-prompt="Calculate 1234 * 5678">🧮 Calculator</button>
+                        <button class="quick-action" data-prompt="Navigate to https://news.ycombinator.com and tell me the top 3 stories">🌐 Browse Web</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <form id="chat-form" class="input-form">
+                    <div class="input-wrapper">
+                        <textarea
+                            id="user-input"
+                            placeholder="Type a message..."
+                            rows="1"
+                            autofocus
+                        ></textarea>
+                        <button type="submit" class="send-btn" id="send-btn" title="Send message">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
