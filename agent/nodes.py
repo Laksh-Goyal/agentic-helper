@@ -10,7 +10,10 @@ from langgraph.prebuilt import ToolNode
 
 from agent import config
 from agent.guardrails import RateLimitExceeded, rate_limiter, tool_logger
+from memory.store import MemoryStore
 from tools import get_all_tools
+
+_memory_store = MemoryStore()
 
 
 def _build_model():
@@ -37,17 +40,38 @@ def _get_model():
     return _model
 
 
+def _build_system_prompt() -> str:
+    """Combine the base system prompt with any stored long-term memory."""
+    memory = _memory_store.get_all()
+    memory_parts: list[str] = []
+    for category in ("personality", "preferences", "key_facts"):
+        entries = memory.get(category, {})
+        if entries:
+            formatted = ", ".join(f"{k}: {v}" for k, v in entries.items())
+            memory_parts.append(f"  {category}: {formatted}")
+
+    if memory_parts:
+        memory_summary = "Long-term memory:\n" + "\n".join(memory_parts)
+        return config.SYSTEM_PROMPT + "\n\n" + memory_summary
+    return config.SYSTEM_PROMPT
+
+
 def call_model(state: dict) -> dict:
     """Invoke the Gemini model with the current conversation history.
 
-    Prepends the system prompt as the first message if it isn't already there.
+    Prepends the system prompt (enriched with long-term memory) as the
+    first message if it isn't already there.
     Increments the iteration counter on every call.
     """
     messages = list(state["messages"])
 
-    # Inject system prompt if missing
+    # Inject (or refresh) system prompt with latest memory
+    system_prompt = _build_system_prompt()
     if not messages or not isinstance(messages[0], SystemMessage):
-        messages.insert(0, SystemMessage(content=config.SYSTEM_PROMPT))
+        messages.insert(0, SystemMessage(content=system_prompt))
+    else:
+        # Refresh in case memory was updated mid-conversation
+        messages[0] = SystemMessage(content=system_prompt)
 
     model = _get_model()
     response = model.invoke(messages)
