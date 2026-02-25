@@ -168,15 +168,30 @@ def execute_confirmed_tool_node(state: dict) -> dict:
         return {
             "messages": [AIMessage(content="No pending tool call to execute.")],
             "awaiting_confirmation": False,
+            "execute_confirmed_tool": False,
         }
 
     original_message = pending["original_message"]
 
-    # Re-invoke the tool node with the original AI message that had tool_calls
-    tool_state = {**state, "messages": state["messages"] + [original_message]}
+    # Re-invoke the tool node with the original AI message at the END
+    # of the temporary list so ToolNode identifies the tools to run.
+    messages = list(state["messages"])
+
+    # Remove last HumanMessage ("yes")
+    if messages and messages[-1].type == "human":
+        messages.pop()
+
+    # Remove confirmation prompt AI message
+    if messages and isinstance(messages[-1], AIMessage) and not getattr(messages[-1], "tool_calls", None):
+        messages.pop()
+
+    # Now append original AI tool call
+    messages.append(original_message)
+
+    tool_state = {**state, "messages": messages}
     result = _get_tool_node().invoke(tool_state)
 
-    # Log the confirmed execution
+    # ── Log the confirmed execution ───────────────────────────────────────
     result_messages = result.get("messages", []) if isinstance(result, dict) else []
     for tc, msg in zip(pending.get("tool_calls", []), result_messages):
         tool_logger.log(
@@ -185,16 +200,11 @@ def execute_confirmed_tool_node(state: dict) -> dict:
             result_summary=getattr(msg, "content", "")[:500],
         )
 
-    # Clear confirmation state
-    if isinstance(result, dict):
-        result["pending_tool_call"] = None
-        result["awaiting_confirmation"] = False
-        result["execute_confirmed_tool"] = False
-    else:
-        result = {
-            "pending_tool_call": None,
-            "awaiting_confirmation": False,
-            "execute_confirmed_tool": False
-        }
-
-    return result
+    # ── Prepare update (clearing flags) ───────────────────────────────────
+    update = {
+        "messages": result_messages,
+        "pending_tool_call": None,
+        "awaiting_confirmation": False,
+        "execute_confirmed_tool": False,
+    }
+    return update

@@ -65,6 +65,13 @@ def _after_confirmation(state: dict) -> str:
     return END
 
 
+def _route_start(state: dict) -> str:
+    """Route to confirmation handler if we're waiting for user input, else to agent."""
+    if state.get("awaiting_confirmation"):
+        return "handle_confirmation"
+    return "agent"
+
+
 def build_graph() -> StateGraph:
     """Construct and compile the agentic graph."""
     workflow = StateGraph(AgentState)
@@ -78,7 +85,13 @@ def build_graph() -> StateGraph:
     workflow.add_node("execute_confirmed_tool", execute_confirmed_tool_node)
 
     # ── Edges ──────────────────────────────────────────────────────────────
-    workflow.set_entry_point("agent")
+    workflow.set_conditional_entry_point(
+        _route_start,
+        {
+            "agent": "agent",
+            "handle_confirmation": "handle_confirmation",
+        },
+    )
 
     workflow.add_conditional_edges(
         "agent",
