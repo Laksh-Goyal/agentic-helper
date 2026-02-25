@@ -39,6 +39,7 @@ def test_agent_state_has_confirmation_fields():
 
     assert "pending_tool_call" in AgentState.__annotations__
     assert "awaiting_confirmation" in AgentState.__annotations__
+    assert "execute_confirmed_tool" in AgentState.__annotations__
 
 
 def test_graph_compiles():
@@ -163,6 +164,7 @@ def test_handle_confirmation_approve():
 
     result = handle_confirmation_node(state)
     assert result.get("execute_confirmed_tool") is True
+    assert result.get("awaiting_confirmation") is False
 
 
 def test_handle_confirmation_deny():

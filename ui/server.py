@@ -102,8 +102,13 @@ async def websocket_chat(websocket: WebSocket):
                         ):
                             final_response = last.content
 
+                # Detect confirmation prompts
+                msg_type = "response"
+                if final_response.startswith("\u26a0\ufe0f") or final_response.startswith("Confirmation required"):
+                    msg_type = "confirmation"
+
                 await websocket.send_text(json.dumps({
-                    "type": "response",
+                    "type": msg_type,
                     "content": final_response,
                     "tools_used": [tc["name"] for tc in tool_calls_made],
                 }))
@@ -116,6 +121,14 @@ async def websocket_chat(websocket: WebSocket):
 
     except WebSocketDisconnect:
         pass
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up browser resources when the server stops."""
+    from tools.browser import close_browser
+
+    close_browser()
 
 
 if __name__ == "__main__":

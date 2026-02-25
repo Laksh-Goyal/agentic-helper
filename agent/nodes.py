@@ -150,6 +150,7 @@ def handle_confirmation_node(state: dict) -> dict:
     if user_reply in ("yes", "y", "approve"):
         return {
             "execute_confirmed_tool": True,
+            "awaiting_confirmation": False,
         }
     else:
         return {
@@ -177,12 +178,27 @@ def execute_confirmed_tool_node(state: dict) -> dict:
     # of the temporary list so ToolNode identifies the tools to run.
     messages = list(state["messages"])
 
-    # Remove last HumanMessage ("yes")
-    if messages and messages[-1].type == "human":
+    # Remove the user's confirmation reply (e.g. "yes").
+    # Guard: only pop if it is actually the human confirmation message.
+    if (
+        messages
+        and messages[-1].type == "human"
+        and messages[-1].content.strip().lower() in ("yes", "y", "approve")
+    ):
         messages.pop()
 
-    # Remove confirmation prompt AI message
-    if messages and isinstance(messages[-1], AIMessage) and not getattr(messages[-1], "tool_calls", None):
+    # Remove the confirmation prompt AI message that we injected.
+    # Guard: only pop a plain AIMessage (no tool_calls) whose content
+    # starts with the known confirmation prefix.
+    if (
+        messages
+        and isinstance(messages[-1], AIMessage)
+        and not getattr(messages[-1], "tool_calls", None)
+        and (
+            messages[-1].content.startswith("\u26a0\ufe0f")
+            or messages[-1].content.startswith("Confirmation required")
+        )
+    ):
         messages.pop()
 
     # Now append original AI tool call

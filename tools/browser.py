@@ -11,6 +11,8 @@ from typing import Optional
 
 from langchain_core.tools import tool
 
+from agent import config
+
 # ── Playwright lifecycle management ───────────────────────────────────────────
 
 _pw = None
@@ -176,17 +178,24 @@ def browser_screenshot() -> str:
     """Take a screenshot of the current page and return its base64 data.
 
     Use this when you want to visually inspect a page. The screenshot
-    is returned as a base64-encoded PNG string.
+    is saved inside the sandbox and returned as a base64-encoded PNG string.
     """
 
     async def _screenshot():
         page = await _ensure_browser()
-        os.makedirs("playwright-screenshots", exist_ok=True)
-        path = "playwright-screenshots/latest.png"
+        screenshots_dir = os.path.join(config.SANDBOX_ROOT, ".screenshots")
+        os.makedirs(screenshots_dir, exist_ok=True)
+        path = os.path.join(screenshots_dir, "latest.png")
         await page.screenshot(path=path, full_page=False)
         with open(path, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
-        url = await page.url
-        return f"Screenshot saved to {path}\nCurrent URL: {url}\nBase64 length: {len(b64)} chars"
+        current_url = page.url
+        return (
+            f"Screenshot saved to {path}\n"
+            f"Current URL: {current_url}\n"
+            f"Base64 PNG ({len(b64)} chars):\n{b64[:200]}..."
+            if len(b64) > 200
+            else f"Screenshot saved to {path}\nCurrent URL: {current_url}\nBase64 PNG:\n{b64}"
+        )
 
     return _run_async(_screenshot())

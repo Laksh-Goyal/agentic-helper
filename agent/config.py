@@ -22,7 +22,10 @@ os.makedirs(SANDBOX_ROOT, exist_ok=True)
 RATE_LIMIT_CALLS: int = int(os.getenv("AGENT_RATE_LIMIT_CALLS", "30"))
 RATE_LIMIT_WINDOW: int = int(os.getenv("AGENT_RATE_LIMIT_WINDOW", "60"))  # seconds
 
-DESTRUCTIVE_TOOLS: list[str] = ["write_file", "append_to_file", "create_directory"]
+DESTRUCTIVE_TOOLS: list[str] = [
+    "write_file", "append_to_file", "create_directory",
+    "browser_click", "browser_type_text",
+]
 
 TOOL_LOG_DIR: str = os.path.join(SANDBOX_ROOT, ".tool_logs")
 os.makedirs(TOOL_LOG_DIR, exist_ok=True)

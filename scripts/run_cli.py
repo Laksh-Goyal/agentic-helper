@@ -4,13 +4,18 @@ Usage:
     python scripts/run_cli.py
 """
 
-import sys
+import atexit
 import os
+import sys
 
 # Ensure the project root is on the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agent.graph import graph  # noqa: E402
+from tools.browser import close_browser  # noqa: E402
+
+# Ensure Playwright resources are freed on exit
+atexit.register(close_browser)
 
 
 def main():

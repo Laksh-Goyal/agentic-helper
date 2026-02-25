@@ -92,26 +92,33 @@ def create_directory(path: str) -> str:
 def append_to_file(path: str, content: str) -> str:
     """Append text content to a file inside the sandbox.
 
+    Only the following file types are allowed: .txt, .md, .json, .csv.
     Creates the file if it does not exist.
-    """
 
+    Args:
+        path: File path (resolved inside the sandbox).
+        content: The text content to append.
+    """
     try:
         abs_path = _resolve_path(path)
     except ValueError as e:
         return str(e)
 
-    # Optional: prevent huge writes
+    ext = os.path.splitext(abs_path)[1].lower()
+    if ext not in _ALLOWED_EXTENSIONS:
+        return (
+            f"Error: File type '{ext}' is not allowed. "
+            f"Permitted extensions: {', '.join(sorted(_ALLOWED_EXTENSIONS))}"
+        )
+
     if len(content) > 100_000:
         return "Error: Content too large to append."
 
     try:
         os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-
         with open(abs_path, "a", encoding="utf-8") as f:
             f.write(content)
-
         return f"Appended {len(content)} characters to {abs_path}"
-
     except PermissionError:
         return f"Error: Permission denied — {abs_path}"
     except OSError as e:
@@ -202,18 +209,20 @@ def read_file(path: str) -> str:
 
 def _human_size(num_bytes: int) -> str:
     """Convert a byte count to a compact human-readable string."""
+    size = float(num_bytes)
     for unit in ("B", "KB", "MB", "GB", "TB"):
-        if abs(num_bytes) < 1024:
-            return f"{num_bytes:.1f} {unit}" if unit != "B" else f"{num_bytes} B"
-        num_bytes /= 1024  # type: ignore[assignment]
-    return f"{num_bytes:.1f} PB"
+        if abs(size) < 1024:
+            return f"{size:.1f} {unit}" if unit != "B" else f"{int(size)} B"
+        size /= 1024
+    return f"{size:.1f} PB"
 
 
 def _resolve_path(path: str) -> str:
-    """Resolve a path inside the sandbox. Reject escapes."""
-    abs_path = os.path.abspath(os.path.join(config.SANDBOX_ROOT, path))
+    """Resolve a path inside the sandbox. Reject escapes (including symlinks)."""
+    sandbox = os.path.realpath(config.SANDBOX_ROOT)
+    abs_path = os.path.realpath(os.path.join(sandbox, path))
 
-    if os.path.commonpath([abs_path, config.SANDBOX_ROOT]) != config.SANDBOX_ROOT:
+    if os.path.commonpath([abs_path, sandbox]) != sandbox:
         raise ValueError("Access denied: Path escapes sandbox")
 
     return abs_path
