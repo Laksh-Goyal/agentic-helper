@@ -13,18 +13,23 @@ from langchain_core.tools import tool
 
 # ── Playwright lifecycle management ───────────────────────────────────────────
 
+_pw = None
 _browser = None
 _page = None
 
 
 async def _ensure_browser():
     """Launch or reuse a persistent browser instance."""
-    global _browser, _page
+    global _pw, _browser, _page
     if _browser is None or not _browser.is_connected():
         from playwright.async_api import async_playwright
 
-        pw = await async_playwright().start()
-        _browser = await pw.chromium.launch(headless=True)
+        # Stop any previously leaked Playwright engine before creating a new one
+        if _pw is not None:
+            await _pw.stop()
+
+        _pw = await async_playwright().start()
+        _browser = await _pw.chromium.launch(headless=True)
         context = await _browser.new_context(
             viewport={"width": 1280, "height": 720},
             user_agent=(
@@ -34,6 +39,25 @@ async def _ensure_browser():
         )
         _page = await context.new_page()
     return _page
+
+
+async def _shutdown_browser():
+    """Gracefully tear down the page, browser, and Playwright engine."""
+    global _pw, _browser, _page
+    if _page is not None:
+        await _page.close()
+        _page = None
+    if _browser is not None:
+        await _browser.close()
+        _browser = None
+    if _pw is not None:
+        await _pw.stop()
+        _pw = None
+
+
+def close_browser():
+    """Sync wrapper to shut down all Playwright resources. Call on agent exit."""
+    _run_async(_shutdown_browser())
 
 
 def _run_async(coro):
