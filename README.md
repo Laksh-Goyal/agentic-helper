@@ -1,4 +1,4 @@
-# ⚡ Agentic Helper
+# Agentic Helper
 
 A modular, extensible AI agent built with **LangGraph** and **Google Gemini**. Features a ReAct-style reasoning loop, Playwright browser interaction, and a real-time chat UI.
 
