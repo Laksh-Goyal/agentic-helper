@@ -27,3 +27,4 @@ class AgentState(TypedDict):
     pending_tool_call: Optional[dict]
     awaiting_confirmation: bool
     execute_confirmed_tool: bool
+    available_tools: Optional[list[str]]

@@ -30,6 +30,13 @@ DESTRUCTIVE_TOOLS: list[str] = [
 TOOL_LOG_DIR: str = os.path.join(SANDBOX_ROOT, ".tool_logs")
 os.makedirs(TOOL_LOG_DIR, exist_ok=True)
 
+# ── Tool retrieval (RAG) ─────────────────────────────────────────────────────
+TOOL_RETRIEVAL_ENABLED: bool = os.getenv("TOOL_RETRIEVAL_ENABLED", "true").lower() == "true"
+TOOL_RETRIEVAL_TOP_K: int = int(os.getenv("TOOL_RETRIEVAL_TOP_K", "3"))
+TOOL_EMBEDDING_MODEL: str = os.getenv("TOOL_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+TOOL_INDEX_DIR: str = os.path.join(SANDBOX_ROOT, ".tool_index")
+os.makedirs(TOOL_INDEX_DIR, exist_ok=True)
+
 # ── API Keys ──────────────────────────────────────────────────────────────────
 GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 

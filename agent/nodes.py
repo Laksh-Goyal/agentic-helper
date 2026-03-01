@@ -4,7 +4,7 @@ Each function takes the current AgentState and returns a partial state update.
 LangGraph merges the returned dict into the shared state automatically.
 """
 
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import ToolNode
 
@@ -16,28 +16,38 @@ from tools import get_all_tools
 _memory_store = MemoryStore()
 
 
-def _build_model():
-    """Build and return the Gemini LLM with tools bound."""
-    tools = get_all_tools()
-    llm = ChatGoogleGenerativeAI(
+def _build_base_model():
+    """Build the bare Gemini LLM *without* tools bound.
+
+    Tool binding now happens per-query inside call_model so we can
+    dynamically select only the tools relevant to the user's message.
+    """
+    return ChatGoogleGenerativeAI(
         model=config.MODEL_NAME,
         temperature=config.TEMPERATURE,
         google_api_key=config.GOOGLE_API_KEY or None,
     )
-    if tools:
-        llm = llm.bind_tools(tools)
-    return llm
 
 
 # Lazily initialised so the module can be imported without side-effects.
-_model = None
+_base_model = None
 
 
-def _get_model():
-    global _model
-    if _model is None:
-        _model = _build_model()
-    return _model
+def _get_base_model():
+    global _base_model
+    if _base_model is None:
+        _base_model = _build_base_model()
+    return _base_model
+
+
+def _extract_latest_user_text(messages: list) -> str:
+    """Walk backwards to find the most recent human message text."""
+    for msg in reversed(messages):
+        if isinstance(msg, HumanMessage) and msg.content:
+            return msg.content
+        if isinstance(msg, tuple) and msg[0] == "user":
+            return msg[1]
+    return ""
 
 
 def _build_system_prompt() -> str:
@@ -59,6 +69,10 @@ def _build_system_prompt() -> str:
 def call_model(state: dict) -> dict:
     """Invoke the Gemini model with the current conversation history.
 
+    When RAG-based tool retrieval is enabled, only the top-k most
+    relevant tools are bound to the model for this invocation.
+    Otherwise all tools are bound (original behavior).
+
     Prepends the system prompt (enriched with long-term memory) as the
     first message if it isn't already there.
     Increments the iteration counter on every call.
@@ -73,12 +87,28 @@ def call_model(state: dict) -> dict:
         # Refresh in case memory was updated mid-conversation
         messages[0] = SystemMessage(content=system_prompt)
 
-    model = _get_model()
-    response = model.invoke(messages)
+    base_model = _get_base_model()
+
+    # ── Dynamic tool selection ────────────────────────────────────────────
+    if config.TOOL_RETRIEVAL_ENABLED:
+        from tools.registry import get_registry
+        user_text = _extract_latest_user_text(messages)
+        retrieved_tools = get_registry().retrieve(
+            user_text, top_k=config.TOOL_RETRIEVAL_TOP_K,
+        )
+        bound_model = base_model.bind_tools(retrieved_tools) if retrieved_tools else base_model
+        available_tool_names = [t.name for t in retrieved_tools]
+    else:
+        all_tools = get_all_tools()
+        bound_model = base_model.bind_tools(all_tools) if all_tools else base_model
+        available_tool_names = [t.name for t in all_tools]
+
+    response = bound_model.invoke(messages)
 
     return {
         "messages": [response],
         "iteration_count": state.get("iteration_count", 0) + 1,
+        "available_tools": available_tool_names,
     }
 
 
