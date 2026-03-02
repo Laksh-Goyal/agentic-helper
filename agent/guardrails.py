@@ -107,9 +107,39 @@ def check_confirmation_needed(tool_calls: list[dict]) -> Optional[str]:
     for tc in destructive:
         name = tc["name"]
         args = tc.get("args", {})
-        path_arg = args.get("path", "")
 
-        # Resolve path inside the sandbox and check existence
+        # ── Email-specific confirmation prompt ────────────────────────────
+        if name == "send_email":
+            to = args.get("to", "unknown")
+            subject = args.get("subject", "(no subject)")
+            body = args.get("body", "")
+            body_preview = (body[:120] + "…") if len(body) > 120 else body
+            descriptions.append(
+                f"  • send_email\n"
+                f"      To: {to}\n"
+                f"      Subject: {subject}\n"
+                f"      Body: {body_preview}"
+            )
+            continue
+
+        # ── Calendar-specific confirmation prompt ─────────────────────────
+        if name == "create_calendar_event":
+            summary = args.get("summary", "(no title)")
+            start = args.get("start_datetime", "?")
+            end = args.get("end_datetime", "?")
+            loc = args.get("location", "")
+            desc_parts = [
+                f"  • create_calendar_event\n"
+                f"      Event: {summary}\n"
+                f"      When: {start} → {end}",
+            ]
+            if loc:
+                desc_parts[0] += f"\n      Where: {loc}"
+            descriptions.append(desc_parts[0])
+            continue
+
+        # ── File-system-oriented prompt (existing behavior) ───────────────
+        path_arg = args.get("path", "")
         exists_note = ""
         if path_arg:
             try:
