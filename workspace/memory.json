@@ -1,5 +1,7 @@
 {
   "key_facts": {},
-  "preferences": {},
+  "preferences": {
+    "conversational_style": "comfortable"
+  },
   "personality": {}
 }

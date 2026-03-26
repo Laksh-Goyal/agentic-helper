@@ -110,7 +110,7 @@ def check_confirmation_needed(tool_calls: list[dict]) -> Optional[str]:
 
         # ── Email-specific confirmation prompt ────────────────────────────
         if name == "send_email":
-            to = args.get("to", "unknown")
+            to = args.get("to_address", args.get("to", "unknown"))
             subject = args.get("subject", "(no subject)")
             body = args.get("body", "")
             body_preview = (body[:120] + "…") if len(body) > 120 else body

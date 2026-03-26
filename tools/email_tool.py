@@ -51,7 +51,7 @@ def _save_draft(to: str, subject: str, body: str) -> str:
 
 
 @tool
-def draft_email(to: str, subject: str, body: str) -> str:
+def draft_email(to_address: str, subject: str, body: str) -> str:
     """Compose an email draft and save it to disk for review.
 
     Use this tool when the user wants to compose, prepare, or draft an email
@@ -59,15 +59,15 @@ def draft_email(to: str, subject: str, body: str) -> str:
     can be reviewed or edited later.
 
     Args:
-        to: Recipient email address (e.g. 'alice@example.com').
+        to_address: Recipient email address (e.g. 'alice@example.com').
         subject: Email subject line.
         body: Full body text of the email.
     """
     try:
-        path = _save_draft(to, subject, body)
+        path = _save_draft(to_address, subject, body)
         return (
             f"✅ Draft saved successfully.\n"
-            f"  To: {to}\n"
+            f"  To: {to_address}\n"
             f"  Subject: {subject}\n"
             f"  Path: {path}"
         )
@@ -76,7 +76,7 @@ def draft_email(to: str, subject: str, body: str) -> str:
 
 
 @tool
-def send_email(to: str, subject: str, body: str) -> str:
+def send_email(to_address: str, subject: str, body: str) -> str:
     """Send an email to the specified recipient via SMTP.
 
     Use this tool when the user explicitly wants to send an email.
@@ -88,7 +88,7 @@ def send_email(to: str, subject: str, body: str) -> str:
     environment variables are set.
 
     Args:
-        to: Recipient email address (e.g. 'alice@example.com').
+        to_address: Recipient email address (e.g. 'alice@example.com').
         subject: Email subject line.
         body: Full body text of the email.
     """
@@ -106,7 +106,7 @@ def send_email(to: str, subject: str, body: str) -> str:
 
     # Also save a copy as a draft for records
     try:
-        draft_path = _save_draft(to, subject, body)
+        draft_path = _save_draft(to_address, subject, body)
     except Exception:
         draft_path = None
 
@@ -114,7 +114,7 @@ def send_email(to: str, subject: str, body: str) -> str:
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = config.EMAIL_FROM
-    msg["To"] = to
+    msg["To"] = to_address
 
     try:
         with smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT) as server:
@@ -124,7 +124,7 @@ def send_email(to: str, subject: str, body: str) -> str:
 
         result = (
             f"✅ Email sent successfully.\n"
-            f"  To: {to}\n"
+            f"  To: {to_address}\n"
             f"  Subject: {subject}"
         )
         if draft_path:

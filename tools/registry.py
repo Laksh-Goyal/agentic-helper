@@ -19,7 +19,6 @@ from typing import Optional
 import faiss
 import numpy as np
 from langchain_core.tools import BaseTool
-from sentence_transformers import SentenceTransformer
 
 _INDEX_FILE = "tools.faiss"
 _META_FILE = "tools_meta.json"
@@ -42,6 +41,9 @@ class ToolRegistry:
     ) -> None:
         self._tools = {t.name: t for t in tools}
         self._persist_dir = persist_dir
+        # Lazy import — only load the heavy BERT model when the registry
+        # is actually constructed (i.e. TOOL_RETRIEVAL_ENABLED=true).
+        from sentence_transformers import SentenceTransformer  # noqa: PLC0415
         self._model = SentenceTransformer(model_name)
 
         # Ordered list of tool names matching the FAISS index row order

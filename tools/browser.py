@@ -7,7 +7,7 @@ navigate, extract content, click elements, type text, and take screenshots.
 import asyncio
 import base64
 import os
-from typing import Optional
+
 
 from langchain_core.tools import tool
 
@@ -104,14 +104,14 @@ def browser_navigate(url: str) -> str:
 
 
 @tool
-def browser_get_content(selector: Optional[str] = None) -> str:
+def browser_get_content(selector: str = "") -> str:
     """Extract visible text content from the current page.
 
     Use this after navigating to a page to read its content.
 
     Args:
-        selector: Optional CSS selector to extract text from a specific element.
-                  If not provided, extracts the full page body text.
+        selector: CSS selector to extract text from a specific element (e.g. 'div.main').
+                  Leave empty or omit to extract the full page body text.
     """
 
     async def _get_content():
